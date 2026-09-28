@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Word Cube</title>
+<title>RIYA'S 25TH</title>
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
 <style>
 :root{--yellow:#e9ef3f;--blue:#3b45b5;--navy:#14185a;--pink:#e0468c;--orange:#ee7a2c;--cream:#f4ecd4;--teal:#a3d3c6;
@@ -40,8 +40,8 @@ button:disabled{opacity:.45;cursor:default;}
 <div class="deco" id="d1" style="top:2%;left:-3%;width:96px"></div>
 <div class="deco" id="d2" style="top:9%;right:-2%;width:84px"></div>
 <div class="deco" id="d3" style="bottom:4%;left:-2%;width:104px"></div>
-<div class="pill">why can't i solve it</div>
-<h1>WORD CUBE</h1>
+<div class="pill">happy birthday</div>
+<h1>RIYA'S 25TH</h1>
 <p class="sub">Words on some faces, pictures on others. Twist it up, then put it all back.</p>
 <div id="scene"><div id="shadow"></div><div id="stage"><div id="cube"></div></div></div>
 <div id="status">solved</div>
@@ -82,12 +82,12 @@ deco('d3',smileStar(150,150,1.1));
 /* ---------- faces: 3 word faces, 3 picture faces ---------- */
 const DOTS='radial-gradient(rgba(20,24,90,.2) 1.1px,transparent 1.6px)';
 const FACES=[
- {axis:'z',dir:1, css:`translateZ(${HALF}px)`, kind:'word',bg:C.pink,fg:C.cream,letters:'WHYNOTYOU'.split(''),coord:(x,y)=>[y+1,x+1]},
+ {axis:'z',dir:1, css:`translateZ(${HALF}px)`, kind:'word',bg:C.pink,fg:C.cream,letters:'QUEENRIYA'.split(''),coord:(x,y)=>[y+1,x+1]},
  {axis:'z',dir:-1,css:`rotateY(180deg) translateZ(${HALF}px)`, kind:'pic',art:'sticker',coord:(x,y)=>[y+1,1-x]},
  {axis:'x',dir:1, css:`rotateY(90deg) translateZ(${HALF}px)`, kind:'pic',art:'star',coord:(y,z)=>[y+1,1-z]},
- {axis:'x',dir:-1,css:`rotateY(-90deg) translateZ(${HALF}px)`, kind:'word',bg:C.yellow,fg:C.blue,letters:'TRYNEWART'.split(''),coord:(y,z)=>[y+1,z+1]},
+ {axis:'x',dir:-1,css:`rotateY(-90deg) translateZ(${HALF}px)`, kind:'word',bg:C.yellow,fg:C.blue,letters:'RIYAS25TH'.split(''),coord:(y,z)=>[y+1,z+1]},
  {axis:'y',dir:-1,css:`rotateX(90deg) translateZ(${HALF}px)`, kind:'pic',art:'key',coord:(x,z)=>[z+1,x+1]},
- {axis:'y',dir:1, css:`rotateX(-90deg) translateZ(${HALF}px)`, kind:'word',bg:C.cream,fg:C.pink,letters:'ZAPWOWYAY'.split(''),coord:(x,z)=>[1-z,x+1]},
+ {axis:'y',dir:1, css:`rotateX(-90deg) translateZ(${HALF}px)`, kind:'word',bg:C.cream,fg:C.pink,letters:'SOLVETHIS'.split(''),coord:(x,z)=>[1-z,x+1]},
 ];
 FACES.forEach(f=>{if(f.art)f.img=url(ART[f.art]);});
 const cubeEl=document.getElementById('cube');
