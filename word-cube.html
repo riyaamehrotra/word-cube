@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Word Cube</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
+<style>
+:root{--yellow:#e9ef3f;--blue:#3b45b5;--navy:#14185a;--pink:#e0468c;--orange:#ee7a2c;--cream:#f4ecd4;--teal:#a3d3c6;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);}
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{margin:0;background:var(--yellow);color:var(--blue);font-family:'Space Mono','Courier New',monospace;display:flex;flex-direction:column;align-items:center;min-height:100%;overflow-x:hidden;position:relative;}
+body::before{content:"";position:fixed;inset:0;background:radial-gradient(rgba(20,24,90,.22) 1.2px,transparent 1.7px) 0 0/7px 7px;pointer-events:none;z-index:0;}
+.deco{position:fixed;z-index:0;pointer-events:none;}
+.pill{position:relative;z-index:1;margin-top:20px;border:2.5px solid var(--blue);border-radius:99px;padding:4px 16px;font-size:13px;font-weight:700;}
+h1{position:relative;z-index:1;font-family:'Archivo Black',Impact,sans-serif;font-size:clamp(38px,11vw,64px);margin:6px 0 2px;letter-spacing:-.01em;line-height:1;color:var(--blue);text-shadow:3px 3px 0 var(--cream);}
+p.sub{position:relative;z-index:1;font-size:13px;margin:6px 0 14px;text-align:center;padding:0 22px;max-width:400px;font-weight:700;}
+#scene{position:relative;z-index:1;-webkit-perspective:900px;width:min(84vw,340px);height:min(84vw,340px);perspective:900px;margin:10px 0 18px;}
+#stage{width:100%;height:100%;position:relative;-webkit-transform-style:preserve-3d;transform-style:preserve-3d;transform:rotateX(-26deg) rotateY(35deg);cursor:grab;touch-action:none;}
+#cube{position:absolute;top:50%;left:50%;-webkit-transform-style:preserve-3d;transform-style:preserve-3d;}
+#shadow{position:absolute;left:50%;bottom:-6%;width:60%;height:26px;margin-left:-30%;background:radial-gradient(ellipse,rgba(20,24,90,.35),transparent 70%);}
+.cubie{position:absolute;top:-34px;left:-34px;width:68px;height:68px;-webkit-transform-style:preserve-3d;transform-style:preserve-3d;}
+.pivot{position:absolute;top:0;left:0;-webkit-transform-style:preserve-3d;transform-style:preserve-3d;}
+.face{position:absolute;top:0;left:0;width:68px;height:68px;display:flex;align-items:center;justify-content:center;font-family:'Archivo Black',Impact,sans-serif;font-size:35px;box-shadow:inset 0 0 0 3.5px #2436e0,inset 0 0 0 5px var(--navy);-webkit-backface-visibility:hidden;backface-visibility:hidden;}
+.face span{display:block;line-height:1;}
+#status{position:relative;z-index:1;font-family:'Archivo Black',Impact,sans-serif;font-size:15px;height:22px;margin-bottom:10px;letter-spacing:.06em;text-transform:uppercase;}
+#status.solved{color:var(--pink);}
+#controls{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:12px;padding:0 16px 30px;width:100%;max-width:460px;}
+.row{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;}
+button{font-family:'Space Mono','Courier New',monospace;font-weight:700;font-size:13px;background:var(--cream);color:var(--navy);border:2.5px solid var(--navy);border-radius:99px;padding:7px 12px;cursor:pointer;box-shadow:3px 3px 0 var(--navy);}
+button:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--navy);}
+button:focus-visible{outline:3px solid var(--pink);outline-offset:2px;}
+.big{background:var(--blue);color:var(--cream);font-family:'Archivo Black',Impact,sans-serif;font-size:15px;padding:10px 24px;}
+.big.alt{background:var(--pink);}
+button:disabled{opacity:.45;cursor:default;}
+</style>
+</head>
+<body>
+<div class="deco" id="d1" style="top:2%;left:-3%;width:96px"></div>
+<div class="deco" id="d2" style="top:9%;right:-2%;width:84px"></div>
+<div class="deco" id="d3" style="bottom:4%;left:-2%;width:104px"></div>
+<div class="pill">why can't i solve it</div>
+<h1>WORD CUBE</h1>
+<p class="sub">Words on some faces, pictures on others. Twist it up, then put it all back.</p>
+<div id="scene"><div id="shadow"></div><div id="stage"><div id="cube"></div></div></div>
+<div id="status">solved</div>
+<div id="controls">
+  <div class="row" id="faceButtons"></div>
+  <div class="row">
+    <button class="big" id="scrambleBtn">Scramble</button>
+    <button class="big alt" id="resetBtn">Reset</button>
+  </div>
+</div>
+<script>
+const STEP=70,HALF=34,IDENT=[[1,0,0],[0,1,0],[0,0,1]];
+const RX_P=[[1,0,0],[0,0,-1],[0,1,0]],RX_N=[[1,0,0],[0,0,1],[0,-1,0]];
+const RY_P=[[0,0,1],[0,1,0],[-1,0,0]],RY_N=[[0,0,-1],[0,1,0],[1,0,0]];
+const RZ_P=[[0,-1,0],[1,0,0],[0,0,1]],RZ_N=[[0,1,0],[-1,0,0],[0,0,1]];
+function mul(a,b){const r=[[0,0,0],[0,0,0],[0,0,0]];for(let i=0;i<3;i++)for(let j=0;j<3;j++){let s=0;for(let k=0;k<3;k++)s+=a[i][k]*b[k][j];r[i][j]=s;}return r;}
+function mv(m,v){return [0,1,2].map(i=>Math.round(m[i][0]*v[0]+m[i][1]*v[1]+m[i][2]*v[2]));}
+function rotFor(a,d){if(a==='x')return d>0?RX_P:RX_N;if(a==='y')return d>0?RY_P:RY_N;return d>0?RZ_P:RZ_N;}
+
+/* ---------- artwork ---------- */
+const C={yellow:'#e9ef3f',blue:'#3b45b5',navy:'#14185a',pink:'#e0468c',orange:'#ee7a2c',cream:'#f4ecd4',tan:'#ecc25a'};
+const svg=(inner,bg)=>`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">${bg?`<rect width="300" height="300" fill="${bg}"/>`:''}${inner}</svg>`;
+function starPts(cx,cy,ro,ri,n){let p=[];for(let i=0;i<n*2;i++){const a=Math.PI*i/n-Math.PI/2,r=i%2?ri:ro;p.push((cx+r*Math.cos(a)).toFixed(1)+','+(cy+r*Math.sin(a)).toFixed(1));}return p.join(' ');}
+const asterisk=(cx,cy,l,w)=>[0,45,90,135].map(a=>`<g transform="rotate(${a} ${cx} ${cy})"><line x1="${cx-l}" y1="${cy}" x2="${cx+l}" y2="${cy}" stroke="${C.navy}" stroke-width="${w+9}" stroke-linecap="round"/></g>`).join('')+[0,45,90,135].map(a=>`<g transform="rotate(${a} ${cx} ${cy})"><line x1="${cx-l}" y1="${cy}" x2="${cx+l}" y2="${cy}" stroke="${C.orange}" stroke-width="${w}" stroke-linecap="round"/></g>`).join('');
+const flower=(cx,cy,r)=>[...Array(8)].map((_,i)=>{const a=i*Math.PI/4;return `<circle cx="${cx+r*Math.cos(a)}" cy="${cy+r*Math.sin(a)}" r="${r*.72}" fill="${C.pink}" stroke="${C.navy}" stroke-width="5"/>`;}).join('')+`<circle cx="${cx}" cy="${cy}" r="${r*.62}" fill="${C.tan}" stroke="${C.navy}" stroke-width="5"/>`;
+const smileStar=(cx,cy,s)=>`<polygon points="${starPts(cx,cy,120*s,84*s,12)}" fill="${C.tan}" stroke="${C.navy}" stroke-width="7" stroke-linejoin="round"/><g fill="none" stroke="${C.navy}" stroke-width="7" stroke-linecap="round"><path d="M${cx-52*s} ${cy-10*s} q${16*s} ${-20*s} ${32*s} 0"/><path d="M${cx+20*s} ${cy-10*s} q${16*s} ${-20*s} ${32*s} 0"/><path d="M${cx-38*s} ${cy+24*s} q${38*s} ${46*s} ${76*s} 0"/></g>`;
+const ART={
+ star:svg(smileStar(150,150,1),C.blue),
+ sticker:svg(asterisk(105,150,70,30)+flower(225,80,30)+`<circle cx="225" cy="230" r="26" fill="none" stroke="${C.blue}" stroke-width="10"/>`,C.yellow),
+ key:svg(`<rect x="46" y="88" width="208" height="160" rx="26" fill="${C.navy}"/><rect x="46" y="66" width="208" height="160" rx="26" fill="${C.blue}" stroke="${C.navy}" stroke-width="8"/><rect x="66" y="80" width="168" height="120" rx="18" fill="#4d59d6"/><path d="M118 108 H182 L118 176 H184" fill="none" stroke="${C.cream}" stroke-width="16" stroke-linejoin="round" stroke-linecap="round"/><circle cx="250" cy="52" r="24" fill="${C.pink}" stroke="${C.navy}" stroke-width="6"/>`,C.cream)
+};
+const url=s=>`url("data:image/svg+xml;utf8,${encodeURIComponent(s)}")`;
+function deco(id,s){document.getElementById(id).innerHTML=svg(s).replace('viewBox','width="100%" viewBox');}
+deco('d1',asterisk(150,150,105,44));
+deco('d2',flower(150,150,54));
+deco('d3',smileStar(150,150,1.1));
+
+/* ---------- faces: 3 word faces, 3 picture faces ---------- */
+const DOTS='radial-gradient(rgba(20,24,90,.2) 1.1px,transparent 1.6px)';
+const FACES=[
+ {axis:'z',dir:1, css:`translateZ(${HALF}px)`, kind:'word',bg:C.pink,fg:C.cream,letters:'WHYNOTYOU'.split(''),coord:(x,y)=>[y+1,x+1]},
+ {axis:'z',dir:-1,css:`rotateY(180deg) translateZ(${HALF}px)`, kind:'pic',art:'sticker',coord:(x,y)=>[y+1,1-x]},
+ {axis:'x',dir:1, css:`rotateY(90deg) translateZ(${HALF}px)`, kind:'pic',art:'star',coord:(y,z)=>[y+1,1-z]},
+ {axis:'x',dir:-1,css:`rotateY(-90deg) translateZ(${HALF}px)`, kind:'word',bg:C.yellow,fg:C.blue,letters:'TRYNEWART'.split(''),coord:(y,z)=>[y+1,z+1]},
+ {axis:'y',dir:-1,css:`rotateX(90deg) translateZ(${HALF}px)`, kind:'pic',art:'key',coord:(x,z)=>[z+1,x+1]},
+ {axis:'y',dir:1, css:`rotateX(-90deg) translateZ(${HALF}px)`, kind:'word',bg:C.cream,fg:C.pink,letters:'ZAPWOWYAY'.split(''),coord:(x,z)=>[1-z,x+1]},
+];
+FACES.forEach(f=>{if(f.art)f.img=url(ART[f.art]);});
+const cubeEl=document.getElementById('cube');
+let cubies=[];
+function cssMatrix(m,p){return `matrix3d(${m[0][0]},${m[1][0]},${m[2][0]},0,${m[0][1]},${m[1][1]},${m[2][1]},0,${m[0][2]},${m[1][2]},${m[2][2]},0,${p[0]*STEP},${p[1]*STEP},${p[2]*STEP},1)`;}
+function build(){
+  cubeEl.innerHTML='';cubies=[];
+  for(let x=-1;x<=1;x++)for(let y=-1;y<=1;y++)for(let z=-1;z<=1;z++){
+    const el=document.createElement('div');el.className='cubie';
+    el.style.transform=cssMatrix(IDENT,[x,y,z]);
+    FACES.forEach(f=>{
+      const face=document.createElement('div');face.className='face';face.style.transform=f.css;
+      const val=f.axis==='x'?x:f.axis==='y'?y:z;
+      if(val===f.dir){
+        const [row,col]=f.coord(f.axis==='x'?y:x,f.axis==='z'?y:z);
+        if(f.kind==='word'){
+          face.style.background=`${DOTS} 0 0/6px 6px,${f.bg}`;face.style.color=f.fg;
+          const i=row*3+col,s=document.createElement('span');
+          s.textContent=f.letters[i];s.style.transform=`rotate(${((i*37)%17)-8}deg)`;face.appendChild(s);
+        } else {
+          face.style.backgroundImage=`${DOTS},${f.img}`;
+          face.style.backgroundSize='6px 6px,300% 300%';
+          face.style.backgroundPosition=`0 0,${col*50}% ${row*50}%`;
+          face.style.backgroundRepeat='repeat,no-repeat';
+        }
+      } else {face.style.background='#0d1040';face.style.boxShadow='none';}
+      el.appendChild(face);
+    });
+    cubeEl.appendChild(el);
+    cubies.push({el,pos:[x,y,z],matrix:IDENT.map(r=>r.slice())});
+  }
+  setStatus(true);
+}
+function matEq(a,b){for(let i=0;i<3;i++)for(let j=0;j<3;j++)if(Math.abs(a[i][j]-b[i][j])>.001)return false;return true;}
+function isSolved(){return cubies.every(c=>matEq(c.matrix,cubies[0].matrix));}
+function setStatus(force){const s=force!==undefined?true:isSolved(),e=document.getElementById('status');e.textContent=s?'solved!':'scrambled';e.className=s?'solved':'';}
+function rotateLayer(axis,layer,dir){
+  return new Promise(res=>{
+    const idx=axis==='x'?0:axis==='y'?1:2;
+    const aff=cubies.filter(c=>c.pos[idx]===layer);
+    const pv=document.createElement('div');pv.className='pivot';
+    cubeEl.appendChild(pv);aff.forEach(c=>pv.appendChild(c.el));
+    pv.getBoundingClientRect();
+    const ax=axis==='x'?'1,0,0':axis==='y'?'0,1,0':'0,0,1';
+    pv.style.transition='transform .28s ease';
+    requestAnimationFrame(()=>{pv.style.transform=`rotate3d(${ax},${dir*90}deg)`;});
+    pv.addEventListener('transitionend',()=>{
+      const R=rotFor(axis,dir);
+      aff.forEach(c=>{c.matrix=mul(R,c.matrix);c.pos=mv(R,c.pos);c.el.style.transform=cssMatrix(c.matrix,c.pos);cubeEl.appendChild(c.el);});
+      cubeEl.removeChild(pv);setStatus();res();
+    },{once:true});
+  });
+}
+const MOVES=[['Right','x',1],['Left','x',-1],['Top','y',-1],['Bottom','y',1],['Front','z',1],['Back','z',-1]];
+const fb=document.getElementById('faceButtons');
+MOVES.forEach(([label,axis,layer])=>[1,-1].forEach(dir=>{
+  const b=document.createElement('button');b.textContent=label+(dir>0?' ↻':' ↺');
+  b.onclick=()=>{if(!document.querySelector('.pivot'))rotateLayer(axis,layer,dir);};
+  fb.appendChild(b);
+}));
+document.getElementById('scrambleBtn').onclick=async()=>{
+  document.querySelectorAll('button').forEach(b=>b.disabled=true);
+  document.getElementById('status').textContent='scrambling…';
+  for(let i=0;i<16;i++){
+    const axis=MOVES[Math.floor(Math.random()*6)][1],layer=[-1,0,1][Math.floor(Math.random()*3)],dir=Math.random()<.5?1:-1;
+    await rotateLayer(axis,layer,dir);
+  }
+  document.querySelectorAll('button').forEach(b=>b.disabled=false);
+};
+document.getElementById('resetBtn').onclick=build;
+build();
+const stage=document.getElementById('stage');
+let drag=false,lx=0,ly=0,rx=-26,ry=35;
+const st=(x,y)=>{drag=true;lx=x;ly=y;},mo=(x,y)=>{if(!drag)return;ry+=(x-lx)*.4;rx=Math.max(-89,Math.min(89,rx-(y-ly)*.4));lx=x;ly=y;stage.style.transform=`rotateX(${rx}deg) rotateY(${ry}deg)`;},en=()=>drag=false;
+stage.addEventListener('mousedown',e=>st(e.clientX,e.clientY));
+addEventListener('mousemove',e=>mo(e.clientX,e.clientY));addEventListener('mouseup',en);
+stage.addEventListener('touchstart',e=>st(e.touches[0].clientX,e.touches[0].clientY),{passive:true});
+addEventListener('touchmove',e=>mo(e.touches[0].clientX,e.touches[0].clientY),{passive:true});addEventListener('touchend',en);
+</script>
+</body>
+</html>
